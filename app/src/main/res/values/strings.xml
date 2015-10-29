@@ -1,8 +1,7 @@
 <resources>
     <string name="app_name">WeatherTest</string>
     <string name="action_settings">Settings</string>
-    <string name="weatherServiceResponseTitle">Weather Service Response</string>
-    <string name="callingWeatherService">Calling weather service.  Please wait....</string>
-    <string name="forcastSummary">Forcast Summary - </string>
+    <string name="callingWeatherService">Checking weather please wait....</string>
+    <string name="forcastSummary">Forecast</string>
     <string name="unableToGetLocation">Unable to determine location. Please turn on a network connection or GPS.</string>
 </resources>

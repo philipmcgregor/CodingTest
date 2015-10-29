@@ -30,7 +30,7 @@ public class MainActivityTest extends ActivityInstrumentationTestCase2<MainActiv
     protected void setUp() throws Exception {
         super.setUp();
         mainActivity = getActivity();
-        weatherServiceResponseTitle = (TextView) mainActivity.findViewById(R.id.weatherServiceResposneTitleTextView);
+        weatherServiceResponseTitle = (TextView) mainActivity.findViewById(R.id.forcastSummaryTextView);
         forcastTitle = (TextView) mainActivity.findViewById(R.id.forcastTitleTextView);
     }
 

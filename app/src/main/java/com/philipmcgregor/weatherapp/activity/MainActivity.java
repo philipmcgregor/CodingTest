@@ -2,61 +2,58 @@ package com.philipmcgregor.weatherapp.activity;
 
 import android.app.Activity;
 import android.content.Context;
-
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.ImageView;
 import android.widget.TextView;
-
 
 import com.philipmcgregor.weatherapp.R;
 import com.philipmcgregor.weatherapp.model.LocationWeather;
 import com.philipmcgregor.weatherapp.model.SimpleLocation;
 import com.philipmcgregor.weatherapp.service.WeatherService;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 public class MainActivity extends Activity {
 
     public static String TAG = "WEATHER_TEST";
+    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 0; // 0 meters
+    private static final long MIN_TIME_BW_UPDATES = 1000 * 10; // 10 seconds
 
     private boolean canGetLocation = false;
-    Location location;
-
-    private TextView weatherServiceResponseTitle, weatherServiceResponse, forcastSummary;
-    LocationListener locationListener;
-    LocationManager locationManager;
-
-    private static final long MIN_DISTANCE_CHANGE_FOR_UPDATES = 10; // 10 meters
-    private static final long MIN_TIME_BW_UPDATES = 1000*60; // 1 minute
+    private boolean weatherSet = false;
+    private Location location;
+    private ImageView weatherIcon;
+    private TextView weatherServiceResponseTitle, forcastSummary;
+    private LocationListener locationListener;
+    private LocationManager locationManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        weatherServiceResponseTitle = (TextView) findViewById(R.id.weatherServiceResposneTitleTextView);
-        weatherServiceResponse = (TextView) findViewById(R.id.weatherServiceResponseTextView);
+        weatherServiceResponseTitle = (TextView) findViewById(R.id.forcastTitleTextView);
         forcastSummary = (TextView) findViewById(R.id.forcastSummaryTextView);
+        weatherIcon = (ImageView) findViewById(R.id.weatherIconImageView);
 
         requestLocation();
     }
 
-    public void setLocation(Location location){
+    public void setLocation(Location location) {
         this.location = location;
     }
 
 
-    private void requestLocation(){
+    private void requestLocation() {
 
         locationManager = (LocationManager) this.getSystemService(Context.LOCATION_SERVICE);
 
         boolean isGPSEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER);
-        Log.v(TAG,"isGPSEnabled=" + isGPSEnabled);
+        Log.v(TAG, "isGPSEnabled=" + isGPSEnabled);
 
         boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
         Log.v(TAG, "isNetworkEnabled=" + isNetworkEnabled);
@@ -65,17 +62,22 @@ public class MainActivity extends Activity {
         locationListener = new LocationListener() {
             public void onLocationChanged(Location location) {
                 // Called when a new location is found
-                Log.i(TAG,"Location retrieved - " + location.toString());
+                Log.i(TAG, "Location retrieved - " + location.toString());
                 setLocation(location);
                 refreshWeatherData();
             }
 
-            public void onStatusChanged(String provider, int status, Bundle extras) { }
-            public void onProviderEnabled(String provider) { }
-            public void onProviderDisabled(String provider) { }
+            public void onStatusChanged(String provider, int status, Bundle extras) {
+            }
+
+            public void onProviderEnabled(String provider) {
+            }
+
+            public void onProviderDisabled(String provider) {
+            }
         };
 
-        // Register the listener with the Location Manager to receive location updates
+
         try {
 
             if (!isGPSEnabled && !isNetworkEnabled) {
@@ -102,7 +104,7 @@ public class MainActivity extends Activity {
             }
 
 
-        }catch(SecurityException e){
+        } catch (SecurityException e) {
             e.printStackTrace();
         }
     }
@@ -110,27 +112,32 @@ public class MainActivity extends Activity {
 
     private void refreshWeatherData() {
 
-            WeatherService weatherService = new WeatherService(){
+        if (!weatherSet) {
+            WeatherService weatherService = new WeatherService() {
                 @Override
-                protected void onPostExecute(LocationWeather result) {
-                    Log.i(TAG, "result = " + result.getResponse().toString());
-                    weatherServiceResponse.setText(result.getResponse().toString());
-                    weatherServiceResponseTitle.setText(getString(R.string.weatherServiceResponseTitle));
+                protected void onPostExecute(LocationWeather locationWeather) {
+                    Log.i(TAG, "result = " + locationWeather.getResponse().toString());
+                    weatherSet = true;
+                    weatherServiceResponseTitle.setText(R.string.forcastSummary);
+                    forcastSummary.setText(locationWeather.getSummary() + " " + locationWeather.getTemperatureAsString());
 
-                    JSONObject currently;
-                    try {
-                        currently = result.getResponse().getJSONObject("currently");
-                        String summary = currently.getString("summary");
-                        forcastSummary.setText(summary);
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        weatherIcon.setImageDrawable(getResources().getDrawable(getImageResourceName(locationWeather.getWeatherType().getIcon()), getApplicationContext().getTheme()));
+                    } else {
+                        weatherIcon.setImageDrawable(getResources().getDrawable(getImageResourceName(locationWeather.getWeatherType().getIcon())));
                     }
                 }
             };
 
-            weatherService.execute(new SimpleLocation(location.getLatitude(),location.getLongitude()));
+            weatherService.execute(new SimpleLocation(location.getLatitude(), location.getLongitude()));
+        }
     }
+
+    private int getImageResourceName(String imageName) {
+        String uri = "drawable/" + imageName;
+        return getResources().getIdentifier(uri, null, getPackageName());
+    }
+
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
@@ -157,13 +164,13 @@ public class MainActivity extends Activity {
     @Override
     public void onPause() {
         super.onPause();
-
+        weatherSet = false;
         // Remove the listener you previously added
         try {
-            if (locationManager != null && locationListener != null){
+            if (locationManager != null && locationListener != null) {
                 locationManager.removeUpdates(locationListener);
             }
-        }catch(SecurityException e){
+        } catch (SecurityException e) {
             Log.e(TAG, "locationManager.removeUpdates ", e);
         }
 

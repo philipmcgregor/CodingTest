@@ -5,7 +5,9 @@ import android.util.Log;
 
 import com.philipmcgregor.weatherapp.model.LocationWeather;
 import com.philipmcgregor.weatherapp.model.SimpleLocation;
+import com.philipmcgregor.weatherapp.model.WeatherType;
 import com.philipmcgregor.weatherapp.utils.IoUtils;
+import com.philipmcgregor.weatherapp.utils.TemperatureUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,8 +32,21 @@ public class WeatherService extends AsyncTask<SimpleLocation, Void, LocationWeat
             throw new IllegalArgumentException("Expecting one location");
         }
 
+        return buildLocationWeather(buildJsonObject(callWeatherService(locations[0])));
+    }
+
+    private LocationWeather buildLocationWeather(JSONObject weatherData){
         LocationWeather locationWeather = new LocationWeather();
-        locationWeather.setResponse(buildJsonObject(callWeatherService(locations[0])));
+        locationWeather.setResponse(weatherData);
+
+        try {
+            JSONObject currently = weatherData.getJSONObject("currently");
+            locationWeather.setSummary(currently.getString("summary"));
+            locationWeather.setWeatherType(WeatherType.getWeatherType(currently.getString("icon")));
+            locationWeather.setTemperature(TemperatureUtils.convertFahrenheitToCelcius(currently.getDouble("temperature")));
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
 
         return locationWeather;
     }
@@ -75,9 +90,5 @@ public class WeatherService extends AsyncTask<SimpleLocation, Void, LocationWeat
         }
         return resultJSON;
     }
-
-
-
-
 
 }
